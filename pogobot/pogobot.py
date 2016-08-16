@@ -345,7 +345,7 @@ class PoGObot:
         self.log.debug("Nearby pokemon: : %s", pokemon_distances)
         for pokemon_distance in pokemon_distances:
             target = pokemon_distance
-            print (target)
+            #print (target)
             self.log.debug("Catching pokemon: : %s, distance: %f meters", target[0], target[1])
             self.log.info("Catching Pokemon: %s, latitude: %s, longitude: %s, distance: %i meters", self.pokemon_names[str(target[0]['pokemon_id'])], target[0]['latitude'],target[0]['longitude'],target[1])
             return self.encounter_pokemon(target[0])
