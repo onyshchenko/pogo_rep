@@ -304,9 +304,9 @@ class PoGObot:
                 self.walk_to((fort['latitude'], fort['longitude']))
                 self.log.info("Arrived at fort at %s,%s", fort['latitude'], fort['longitude'])
                 if self.SLOW_BUT_STEALTH:
-                    sleep(2 * random.random() + 1)
+                    sleep(4 * random.random() + 2)
                 # when arrived, get the new position and spin the pokestop
-                self._posf = self.api.get_position()
+                #self._posf = self.api.get_position()
                 position = self._posf
                 request = self.api.create_request()
                 request.fort_search(fort_id=fort['id'], fort_latitude=fort['latitude'], fort_longitude=fort['longitude'], player_latitude=position[0], player_longitude=position[1])
@@ -318,15 +318,15 @@ class PoGObot:
                     self.log.info("Fort already spinned (cooling down)!")
                 else:
                     self.log.info("Fort not spinned succesfully!")
-                if 'lure_info' in fort:
-                    encounter_id = fort['lure_info']['encounter_id']
-                    fort_id = fort['lure_info']['fort_id']
-                    request_2 = self.api.create_request()
-                    request_2.disk_encounter(encounter_id=encounter_id, fort_id=fort_id, player_latitude=position[0], player_longitude=position[1])
-                    resp = request_2.call()['responses']['DISK_ENCOUNTER']
-                    self.log.debug('Encounter response is: %s', resp)
-                    if sum(self.pokeballs) > 10:
-                        self.disk_encounter_pokemon(fort['lure_info'])
+                #if 'lure_info' in fort:
+                    #encounter_id = fort['lure_info']['encounter_id']
+                    #fort_id = fort['lure_info']['fort_id']
+                    #request_2 = self.api.create_request()
+                    #request_2.disk_encounter(encounter_id=encounter_id, fort_id=fort_id, player_latitude=position[0], player_longitude=position[1])
+                    #resp = request_2.call()['responses']['DISK_ENCOUNTER']
+                    #self.log.debug('Encounter response is: %s', resp)
+                    #if sum(self.pokeballs) > 10:
+                        #self.disk_encounter_pokemon(fort['lure_info'])
                 return True
             else:
                 self.log.error("No fort to walk to!")
