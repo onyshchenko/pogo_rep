@@ -243,6 +243,8 @@ class PoGObot:
                 print (destinations)
                 print (self.forts)
                 print (self._posf)
+                for fort1 in self.forts:
+                    print ("fort1 ",fort1)
                 if len(destinations) > 0:
                     i = 0
                     for find_fort_near in destinations:
@@ -307,8 +309,8 @@ class PoGObot:
                 # select a random pokestop and go there
                 destination_num = random.randint(0, min(7, len(destinations) - 1))
                 #destination_num = 0 #go to the nearest pokestop
-                for find_fort_near in destinations:
-                    print (find_fort_near)
+                #for find_fort_near in destinations:
+                    #print (find_fort_near)
                     #if "cooldown_complete_timestamp_ms" not in find_fort_near:
                         #fort = find_fort_near
                         #break

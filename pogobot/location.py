@@ -61,7 +61,7 @@ def filtered_forts(origin, forts):
     sorted_forts = sorted(forts, lambda x, y: cmp(x[1], y[1]))
     i = 0
     for x in sorted_forts:
-        #print (x)
+        print (x)
         i += 1
         if i > 10:
             break
