@@ -89,8 +89,8 @@ def main():
         logging.getLogger("rpc_api").setLevel(logging.DEBUG)
 
     position = get_pos_by_name(config.location)
-    print (config.location)
-    print (position)
+    #print (config.location)
+    #print (position)
     if config.test:
         return
 
@@ -126,10 +126,11 @@ def main():
         except Exception as e:
             log.exception('Main loop has an ERROR, restarting %s', e)
             sleep(30)
-            main()
+            #main()
+            break
 
-    import ipdb # noqa
-    ipdb.set_trace() # noqa
+    #import ipdb # noqa
+    #ipdb.set_trace() # noqa
 
 if __name__ == '__main__':
     main()
