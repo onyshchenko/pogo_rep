@@ -28,6 +28,8 @@ import os.path
 import platform
 import time
 
+from geopy.distance import VincentyDistance, vincenty
+
 from pgoapi import PGoApi
 from pgoapi import utilities as util
 
@@ -240,21 +242,29 @@ class PoGObot:
                 self.api.set_position(*final_point)
                 # make sure we have atleast 1 ball
                 self.nearby_map_objects()
+
                 nearby_forts = PoGObot.from_iterable_to_chain(lambda c: c.get('forts', []), self.map_cells)
-        	
-                destinations = filtered_forts(self._posf, nearby_forts)
-                print (destinations)
-                print (nearby_forts)
-                print (self._posf)
-                for fort1 in nearby_forts:
-                    print ("fort1 ",fort1)
+                nearby_forts = [(fort, distance_in_meters(self._posf, (fort['latitude'], fort['longitude']))) for fort in nearby_forts if fort.get('type', None) == 1]
+                sorted_forts = sorted(nearby_forts, lambda x, y: cmp(x[1], y[1]))
+                for x in sorted_forts:
+                    destinations = [x]
+                    break
+
                 if len(destinations) > 0:
+                    self.log.info('Destinations: \n\r{}'.format(json.dumps(destinations, indent=2)))
+                    #dist = destinations.pop()
+                    #print (dist)
+                    #dist1 = dist.pop()
+                    #print (dist1)
+                    #print (self._posf)
                     i = 0
                     for find_fort_near in destinations:
-                        self.log.debug("Nearby fort: : %s", find_fort_near)
-                        i += 1
-                        if i > 3:
-                            break
+                        #self.log.info("Nearby fort: : %s", find_fort_near)
+                        print (find_fort_near[1])
+                        #i += 1
+                        #if i > 3:
+                            #break
+
                 
                 if sum(self.pokeballs) > 0 and self._walk_count % 5:
                     while self.catch_near_pokemon():
@@ -302,42 +312,33 @@ class PoGObot:
                 #self.spin_near_fort
         # without GPX data bot wil go from pokestop to pokestop
         else:
-            print ("Str 270")
+            #print ("Str 270")
             #print (self._start_pos)
             #print (self._walk_count)
             #print (self.config.get("RETURN_START_INTERVAL"))
             #print (self._walk_count % self.config.get("RETURN_START_INTERVAL"))
             
-            destinations = {}
-            for near_fort in nearby_forts:
-                print (near_fort)
-                if "type" in near_fort: 
-                    if near_fort['type'] == 1:
-                        self.log.info('spin_near_fort (nearby_forts): \n\r{}'.format(json.dumps(near_fort, indent=2)))
-                        dist = distance_in_meters(self._start_pos, (near_fort['latitude'], near_fort['longitude']))
-                        self.log.info("Distance to fort at %i", dist)
-                        destinations.update(near_fort,dist) 
-                        
-                
-            #for fort in nearby_forts:
-                #if "type" in fort: 
-                    #if fort['type'] == 1:
-                        #print ("forts_distances", fort, distance_in_meters(self._start_pos, (fort['latitude'], fort['longitude'])))
-                
+            
+            #near_fort = [{'last_modified_timestamp_ms': 1471348086825L, 'enabled': True, 'longitude': 30.346832, 'latitude': 50.281982, 'type': 1, 'id': u'9fcf7d596c1c46b0b86cded933b6f132.16'}, {'last_modified_timestamp_ms': 1467338156329L, 'enabled': True, 'longitude': 30.34095, 'latitude': 50.271207, 'type': 1, 'id': u'62175c81de5d403b8f6b21c67fc3a0d3.16'}]
+            #print ("nearby_forts: ", nearby_forts)
+
+            #nearby_forts = [(fort, round(vincenty(self._start_pos, (fort['latitude'], fort['longitude'])).meters)) for fort in nearby_forts if fort.get('type', None) == 1]
+            #nearby_forts = [(fort, distance_in_meters(self._start_pos, (fort['latitude'], fort['longitude']))) for fort in nearby_forts if fort.get('type', None) == 1]
+            #print ("nearby_forts: ", nearby_forts)
+            #print("sorted_forts: ", sorted_forts)
             
             if self._start_pos and self._walk_count % self.config.get("RETURN_START_INTERVAL") == 0:
-                destinations = filtered_forts(self._start_pos, nearby_forts)
+                nearby_forts = [(fort, distance_in_meters(self._start_pos, (fort['latitude'], fort['longitude']))) for fort in nearby_forts if fort.get('type', None) == 1]
+                #destinations = filtered_forts(self._start_pos, nearby_forts)
             else:
-                destinations = filtered_forts(self._posf, nearby_forts)
+                nearby_forts = [(fort, distance_in_meters(self._posf, (fort['latitude'], fort['longitude']))) for fort in nearby_forts if fort.get('type', None) == 1]
+                #destinations = filtered_forts(self._posf, nearby_forts)
+            sorted_forts = sorted(nearby_forts, lambda x, y: cmp(x[1], y[1]))
+            destinations = [x[0] for x in sorted_forts]
+
+            #print ("count forts :", len(sorted_forts))
+            #print ("destinations: ", destinations)
             
-            #nosorted_forts = [(fort, distance_in_meters(origin, (fort['latitude'], fort['longitude']))) for fort in nearby_forts if fort.get('type', None) == 1]
-            #print (nosorted_forts)
-            #for x in forts_distances:
-                #print (x)
-            #sorted_forts = sorted(forts_distances, lambda x, y: cmp(x[1], y[1]))
-            #for x in sorted_forts:
-                #print (x)
-            #print ("destinations", destinations)
             if len(destinations) > 0:
                 # select a random pokestop and go there
                 destination_num = random.randint(0, min(7, len(destinations) - 1))
@@ -362,16 +363,16 @@ class PoGObot:
                 #self._posf = self.api.get_position()
                 position = self._posf
                 
-                #request = self.api.create_request()
-                #request.fort_search(fort_id=fort['id'], fort_latitude=fort['latitude'], fort_longitude=fort['longitude'], player_latitude=position[0], player_longitude=position[1])
-                #res = request.call()['responses']['FORT_SEARCH']
-                #if 'items_awarded' in res:
-                    #self.log.info("Fort spinned!")
+                request = self.api.create_request()
+                request.fort_search(fort_id=fort['id'], fort_latitude=fort['latitude'], fort_longitude=fort['longitude'], player_latitude=position[0], player_longitude=position[1])
+                res = request.call()['responses']['FORT_SEARCH']
+                if 'items_awarded' in res:
+                    self.log.info("Fort spinned!")
                 # now i fully understand java's switch/case
-                #elif res['result'] == 3:
-                    #self.log.info("Fort already spinned (cooling down)!")
-                #else:
-                    #self.log.info("Fort not spinned succesfully!")
+                elif res['result'] == 3:
+                    self.log.info("Fort already spinned (cooling down)!")
+                else:
+                    self.log.info("Fort not spinned succesfully!")
                 
                 if self.SLOW_BUT_STEALTH:
                     sleep(4 * random.random() + 2)
@@ -783,9 +784,9 @@ class PoGObot:
         nearby_forts = PoGObot.from_iterable_to_chain(lambda c: c.get('forts', []), self.map_cells)
         #nearby_pokemons = PoGObot.from_iterable_to_chain(lambda c: c.get('catchable_pokemons', []), self.map_cells_w)
 
-        print (nearby_forts)
-        for near_fort in nearby_forts:
-            self.log.info('main_loop (nearby_fort): \n\r{}'.format(json.dumps(near_fort, indent=2)))
+        #print (nearby_forts)
+        #for near_fort in nearby_forts:
+            #self.log.info('main_loop (nearby_fort): \n\r{}'.format(json.dumps(near_fort, indent=2)))
        
         while True:
             if heartbeat_cnt % 3 == 0:

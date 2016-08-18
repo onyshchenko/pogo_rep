@@ -57,22 +57,23 @@ def distance_in_meters(p1, p2):
 
 
 def filtered_forts(origin, forts):
-    print (forts)
-    for x in forts:
-        print (x)
+    #print (forts)
+    #for x in forts:
+        #print (x)
     nosorted_forts = [(fort, distance_in_meters(origin, (fort['latitude'], fort['longitude']))) for fort in forts if fort.get('type', None) == 1]
-    print (nosorted_forts)
-    for x in nosorted_forts:
-        print (x)
+    #print (nosorted_forts)
+    #for x in nosorted_forts:
+        #print (x)
     sorted_forts = sorted(forts, lambda x, y: cmp(x[1], y[1]))
-    print (sorted_forts)
+    #print (sorted_forts)
     i = 0
     for x in sorted_forts:
-        print (x)
+        #print (x)
         i += 1
         if i > 10:
             break
     return [x[0] for x in sorted_forts]
+    #return [x for x in sorted_forts]
 
 
 def get_neighbors(loc, level=15, spread=700):

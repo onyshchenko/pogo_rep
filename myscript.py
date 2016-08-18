@@ -1,3 +1,6 @@
+from geopy.distance import VincentyDistance, vincenty
+
+
 class MyFunctions():
     def __init__( self):
         self.listOfItems = dict()
@@ -21,6 +24,14 @@ class MyFunctions():
         #self.map_cells.append("test")
 
 f = MyFunctions()
-f.displayList()
-f.addToList()
-f.displayList()
+#f.displayList()
+#f.addToList()
+#f.displayList()
+
+near_fort = [{'last_modified_timestamp_ms': 1471348086825L, 'enabled': True, 'longitude': 30.346832, 'latitude': 50.281982, 'type': 1, 'id': u'9fcf7d596c1c46b0b86cded933b6f132.16'}, {'last_modified_timestamp_ms': 1467338156329L, 'enabled': True, 'longitude': 30.34095, 'latitude': 50.271207, 'type': 1, 'id': u'62175c81de5d403b8f6b21c67fc3a0d3.16'}]
+print ("near_fort: ", near_fort)
+
+near_fort = [(fort, round(vincenty((50.281131, 30.345966), (fort['latitude'], fort['longitude'])).meters)) for fort in near_fort if fort.get('type', None) == 1]
+print ("near_fort: ", near_fort)
+sorted_forts = sorted(near_fort, lambda x, y: cmp(x[1], y[1]))
+print("sorted_forts: ", sorted_forts)
