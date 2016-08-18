@@ -52,13 +52,20 @@ def append_elevation(lat, lon, gmaps_api_key):
 
 
 def distance_in_meters(p1, p2):
+    #print ("distance_in_meters", p1, p2)
     return round(vincenty(p1, p2).meters)
 
 
 def filtered_forts(origin, forts):
-    forts = [(fort, distance_in_meters(origin, (fort['latitude'], fort['longitude']))) for fort in forts if fort.get('type', None) == 1]
-    #print (forts)
+    print (forts)
+    for x in forts:
+        print (x)
+    nosorted_forts = [(fort, distance_in_meters(origin, (fort['latitude'], fort['longitude']))) for fort in forts if fort.get('type', None) == 1]
+    print (nosorted_forts)
+    for x in nosorted_forts:
+        print (x)
     sorted_forts = sorted(forts, lambda x, y: cmp(x[1], y[1]))
+    print (sorted_forts)
     i = 0
     for x in sorted_forts:
         print (x)
