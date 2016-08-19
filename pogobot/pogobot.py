@@ -237,7 +237,7 @@ class PoGObot:
                     if dist_m < 10:
                         sleep(dist_m/1.5)
                     else:
-                        sleep(dist_m/4)
+                        sleep(dist_m/2.5)
                 #self.log.info("Final_point latitude: %s, longitude: %s. Distance %i meters", final_point[0],final_point[1],dist_m)
                 self.api.set_position(*final_point)
                 # make sure we have atleast 1 ball
@@ -260,11 +260,9 @@ class PoGObot:
                     i = 0
                     for find_fort_near in destinations:
                         #self.log.info("Nearby fort: : %s", find_fort_near)
-                        print (find_fort_near[1])
-                        #i += 1
-                        #if i > 3:
-                            #break
-
+                        if find_fort_near[1] < 100:
+                            #print (find_fort_near[1])
+                            self.fort_spin(find_fort_near)
                 
                 if sum(self.pokeballs) > 0 and self._walk_count % 5:
                     while self.catch_near_pokemon():
@@ -272,7 +270,26 @@ class PoGObot:
                             sleep(2 * random.random() + 2) # If you want to make it faster, delete this line... would not recommend though
 
         return
-
+    def fort_spin(self, fort_near):
+        print ("I'm in fort_spin")
+        position = self._posf
+        #print (fort_near[0]['id'],fort_near[0]['latitude'],fort_near[0]['longitude'],position[0], position[1])
+        self.log.info("fort_spin fort_id: %s, fort_latitude %s, fort_longitude %s, distance %i", fort_near[0]['id'],fort_near[0]['latitude'],fort_near[0]['longitude'],fort_near[1])
+        request = self.api.create_request()
+        request.fort_search(fort_id=fort_near[0]['id'], fort_latitude=fort_near[0]['latitude'], fort_longitude=fort_near[0]['longitude'], player_latitude=position[0], player_longitude=position[1])
+        res = request.call()['responses']['FORT_SEARCH']
+        self.log.info("fort_spin (res): %s", res)
+        if 'items_awarded' in res:
+            self.log.info("Fort spinned!")
+        # now i fully understand java's switch/case
+        elif res['result'] == 3:
+            self.log.info("Fort already spinned (cooling down)!")
+        else:
+            self.log.info("Fort not spinned succesfully!")
+        if self.SLOW_BUT_STEALTH:
+            sleep(4 * random.random() + 3)
+                    
+                    
     # this is in charge of spinning a pokestop
     def spin_near_fort(self):
         #response = self.nearby_map_objects()
@@ -334,10 +351,10 @@ class PoGObot:
                 nearby_forts = [(fort, distance_in_meters(self._posf, (fort['latitude'], fort['longitude']))) for fort in nearby_forts if fort.get('type', None) == 1]
                 #destinations = filtered_forts(self._posf, nearby_forts)
             sorted_forts = sorted(nearby_forts, lambda x, y: cmp(x[1], y[1]))
-            destinations = [x[0] for x in sorted_forts]
+            destinations = [x for x in sorted_forts]
 
             #print ("count forts :", len(sorted_forts))
-            #print ("destinations: ", destinations)
+            #print ("destinations: ", destinations, len(destinations))
             
             if len(destinations) > 0:
                 # select a random pokestop and go there
@@ -349,33 +366,34 @@ class PoGObot:
                         #fort = find_fort_near
                         #break
                 fort = destinations[destination_num]
-                #print (fort)
+                #print ("fort", fort)
                 if self._walk_count == 1:
                     self.first_fort = fort
                 if self._start_pos and self._walk_count % self.config.get("RETURN_START_INTERVAL") == 0:
                     fort = self.first_fort
-                self.log.info("Walking to fort at %s,%s", fort['latitude'], fort['longitude'])
-                self.walk_to((fort['latitude'], fort['longitude']))
-                self.log.info("Arrived at fort at %s,%s", fort['latitude'], fort['longitude'])
+                
+                self.log.info("Walking to fort at %s,%s", fort[0]['latitude'], fort[0]['longitude'])
+                self.walk_to((fort[0]['latitude'], fort[0]['longitude']))
+                self.log.info("Arrived at fort at %s,%s", fort[0]['latitude'], fort[0]['longitude'])
                 if self.SLOW_BUT_STEALTH:
-                    sleep(4 * random.random() + 2)
+                    sleep(6 * random.random() + 3)
                 # when arrived, get the new position and spin the pokestop
                 #self._posf = self.api.get_position()
-                position = self._posf
                 
-                request = self.api.create_request()
-                request.fort_search(fort_id=fort['id'], fort_latitude=fort['latitude'], fort_longitude=fort['longitude'], player_latitude=position[0], player_longitude=position[1])
-                res = request.call()['responses']['FORT_SEARCH']
-                if 'items_awarded' in res:
-                    self.log.info("Fort spinned!")
+                self.fort_spin(fort)
+
+                #position = self._posf
+                #request = self.api.create_request()
+                #request.fort_search(fort_id=fort[0]['id'], fort_latitude=fort[0]['latitude'], fort_longitude=fort[0]['longitude'], player_latitude=position[0], player_longitude=position[1])
+                #res = request.call()['responses']['FORT_SEARCH']
+                #if 'items_awarded' in res:
+                    #self.log.info("Fort spinned!")
                 # now i fully understand java's switch/case
-                elif res['result'] == 3:
-                    self.log.info("Fort already spinned (cooling down)!")
-                else:
-                    self.log.info("Fort not spinned succesfully!")
-                
-                if self.SLOW_BUT_STEALTH:
-                    sleep(4 * random.random() + 2)
+                #elif res['result'] == 3:
+                    #self.log.info("Fort already spinned (cooling down)!")
+                #else:
+                    #self.log.info("Fort not spinned succesfully!")
+
                 #if 'lure_info' in fort:
                     #encounter_id = fort['lure_info']['encounter_id']
                     #fort_id = fort['lure_info']['fort_id']
