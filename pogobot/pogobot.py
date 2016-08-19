@@ -252,33 +252,40 @@ class PoGObot:
 
                 if len(destinations) > 0:
                     self.log.info('Destinations: \n\r{}'.format(json.dumps(destinations, indent=2)))
-                    #dist = destinations.pop()
-                    #print (dist)
-                    #dist1 = dist.pop()
-                    #print (dist1)
-                    #print (self._posf)
                     i = 0
                     for find_fort_near in destinations:
                         #self.log.info("Nearby fort: : %s", find_fort_near)
-                        if find_fort_near[1] < 100:
-                            #print (find_fort_near[1])
+                        if find_fort_near[1] < 35:
+                            if self.SLOW_BUT_STEALTH:
+                                sleep(6 * random.random() + 3)
+
                             self.fort_spin(find_fort_near)
                 
                 if sum(self.pokeballs) > 0 and self._walk_count % 5:
                     while self.catch_near_pokemon():
                         if self.SLOW_BUT_STEALTH:
                             sleep(2 * random.random() + 2) # If you want to make it faster, delete this line... would not recommend though
+        if find_fort_near[1] > 10:
+            if self.SLOW_BUT_STEALTH:
+                sleep(4 * random.random() + 4) # If you want to make it faster, delete this line... would not recommend though
+            posf = self.api.get_position()
+            #print ("posf: ", posf, find_fort_near[0]['latitude'], find_fort_near[0]['longitude'])
+            #posf[0] = find_fort_near[0]['latitude']
+            #posf[1] = find_fort_near[0]['longitude']
+            self.api.set_position(find_fort_near[0]['latitude']+0.00001, find_fort_near[0]['longitude']-0.00001, posf[2])
+            self.nearby_map_objects()
+            #self._posf = self.api.get_position()
 
         return
     def fort_spin(self, fort_near):
-        print ("I'm in fort_spin")
+        #print ("I'm in fort_spin")
         position = self._posf
         #print (fort_near[0]['id'],fort_near[0]['latitude'],fort_near[0]['longitude'],position[0], position[1])
         self.log.info("fort_spin fort_id: %s, fort_latitude %s, fort_longitude %s, distance %i", fort_near[0]['id'],fort_near[0]['latitude'],fort_near[0]['longitude'],fort_near[1])
         request = self.api.create_request()
         request.fort_search(fort_id=fort_near[0]['id'], fort_latitude=fort_near[0]['latitude'], fort_longitude=fort_near[0]['longitude'], player_latitude=position[0], player_longitude=position[1])
         res = request.call()['responses']['FORT_SEARCH']
-        self.log.info("fort_spin (res): %s", res)
+        #self.log.info("fort_spin (res): %s", res)
         if 'items_awarded' in res:
             self.log.info("Fort spinned!")
         # now i fully understand java's switch/case
@@ -450,18 +457,7 @@ class PoGObot:
             #self.log.info('nearby_map_objects (self.map_cells_w): \n\r{}'.format(json.dumps(self.map_cells_w, indent=2)))
             
             self.map_cells = self.map_cells_w.get('responses', {}).get('GET_MAP_OBJECTS', {}).get('map_cells', {})
-            #self.map_cells = map_cells
-            #self.nearby_forts = PoGObot.from_iterable_to_chain(lambda c: c.get('forts', []), map_cells)
-            #self.nearby_pokemons = PoGObot.from_iterable_to_chain(lambda c: c.get('catchable_pokemons', []), map_cells)
-            
-            #for near_fort in self.nearby_forts:
-                #self.log.info('nearby_map_objects (self.nearby_fort): \n\r{}'.format(json.dumps(near_fort, indent=2)))
-            
-            #for near_pokemon in self.nearby_pokemons:
-                #self.log.info('nearby_map_objects (self.nearby_pokemon): \n\r{}'.format(json.dumps(near_pokemon, indent=2)))
-       	
-            #print (self._posf)
-            #print (self.last_map_request)
+ 
         return True
 
     def attempt_catch(self, encounter_id, spawn_point_id, ball_type):
