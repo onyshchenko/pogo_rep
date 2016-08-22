@@ -186,6 +186,7 @@ class PoGObot:
 
     def response_parser(self, res):
         #print ("res = " ,res)
+        #self.log.info('Res_data: \n\r{}'.format(json.dumps(res, indent=2)))
         if os.path.isfile("accounts/%s/Inventory.json" % self.config['username']) and 'GET_INVENTORY' in res['responses']:
             with open("accounts/%s/Inventory.json" % self.config['username'], "w") as file_to_write:
                 file_to_write.write(json.dumps(res['responses'], indent=2))
@@ -239,7 +240,7 @@ class PoGObot:
         res = self.api.get_inventory()
         sleep(2 * random.random() + 5)
         self.log.debug('Heartbeat dictionary: \n\r{}'.format(json.dumps(res, indent=2)))
-        self.response_parser(res=res)
+        self.response_parser(res)
         if self.AUTO_HATCHING and self._heartbeat_number % 10 == 0:
             hatching_eggs_count = self.attempt_hatch_eggs(res=res)
             if hatching_eggs_count > 0:
@@ -330,7 +331,7 @@ class PoGObot:
                 #self.log.info("Finished_forts: %s", self.finished_forts)
                 self.log.debug ("Delete this id from finished_forts: %s", x['fort_id'])
                 self.finished_forts.pop(y)
-                self.log.info("Finished_forts: %s", self.finished_forts)
+                #self.log.info("Finished_forts: %s", self.finished_forts)
             y += 1
 
         if flag == 0:
@@ -343,7 +344,7 @@ class PoGObot:
             if 'items_awarded' in res:
                 experience_awarded = res.get('experience_awarded', {})
                 self.player_exp += experience_awarded
-                self.log.info("Fort spinned! Exp = %s [%s]",experience_awarded,self.player_exp)
+                self.log.info("Fort spinned! Exp = %s [%s/%s]",experience_awarded,self.player_exp,self.player_next_level_xp)
                 #self.finished_forts = [{'fort_id': fort_near[0]['id'],'spinned_time': int(round(time.time()))}]
                 self.finished_forts.append({'fort_id': fort_near[0]['id'],'spinned_time': int(round(time.time()))})
                 self.log.debug("Finished_forts: %s", self.finished_forts)
@@ -734,7 +735,7 @@ class PoGObot:
                             self.player_exp += exp
 
                             self.log.debug("Caught Pokemon: : %s", catch_attempt)  # you did it
-                            self.log.info("Caught Pokemon:  %s. Exp: %s (%s)", self.pokemon_names[str(pokemon['pokemon_id'])],exp,self.player_exp)
+                            self.log.info("Caught Pokemon:  %s. Exp = %s (%s/%s)", self.pokemon_names[str(pokemon['pokemon_id'])],exp,self.player_exp,self.player_next_level_xp)
                             
                             self._pokeball_type = 1
                             if self.SLOW_BUT_STEALTH:
@@ -774,7 +775,7 @@ class PoGObot:
         response = self.api.app_simulation_login()
 
         # update Inventory
-        self.response_parser(res=response)
+        self.response_parser(response)
 
         sleep(5 * random.random() + 5)
 
