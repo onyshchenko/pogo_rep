@@ -171,7 +171,12 @@ class PoGObot:
         self.map_cells = dict()
         self.map_cells_w = dict()
         self.walk_fort_id = 0
-        self.finished_forts = {}
+        self.finished_forts = []
+        self.player_level = 0
+        self.player_level_old = 0
+        self.player_exp = 0
+        self.player_next_level_xp = 0
+
         #self.nearby_forts = {}
         #self.nearby_pokemons = {}
         self.last_map_request = ({'time': 0, 'latitude': 0, 'longitude': 0})
@@ -180,6 +185,7 @@ class PoGObot:
         )
 
     def response_parser(self, res):
+        #print ("res = " ,res)
         if os.path.isfile("accounts/%s/Inventory.json" % self.config['username']) and 'GET_INVENTORY' in res['responses']:
             with open("accounts/%s/Inventory.json" % self.config['username'], "w") as file_to_write:
                 file_to_write.write(json.dumps(res['responses'], indent=2))
@@ -200,6 +206,19 @@ class PoGObot:
             player_stats = filter(lambda x: 'player_stats' in x, inventory_items_dict_list)[0].get('player_stats', {})
             currencies = player_data.get('currencies', [])
             currency_data = ",".join(map(lambda x: "{0}: {1}".format(x.get('name', 'NA'), x.get('amount', 'NA')), currencies))
+            
+            self.player_level = player_stats.get('level', 'NA')
+            self.player_exp = player_stats.get('experience', 'NA')
+            self.player_next_level_xp = player_stats.get('next_level_xp', 'NA')
+            
+            if self.player_level_old == 0:
+                self.player_level_old = self.player_level
+            
+            #if self.player_level > self.player_level_old:
+                #print ("!!! NEW LEVEL. EXIT. !!!")
+                #exit(0)
+
+            
             self.log.info("\n\n Username: %s, Lvl: %s, XP: %s/%s \n Currencies: %s \n", player_data.get('username', 'NA'), player_stats.get('level', 'NA'), player_stats.get('experience', 'NA'), player_stats.get('next_level_xp', 'NA'), currency_data)
         if 'GET_INVENTORY' in res['responses']:
             res['responses']['lat'] = self._posf[0]
@@ -247,6 +266,16 @@ class PoGObot:
                 # make sure we have atleast 1 ball
                 self.nearby_map_objects()
 
+                if sum(self.pokeballs) > 0 and self._walk_count % 5:
+                    while self.catch_near_pokemon():
+                        if self.SLOW_BUT_STEALTH:
+                            sleep(2 * random.random() + 2) # If you want to make it faster, delete this line... would not recommend though
+
+                if self.player_exp >= self.player_next_level_xp:
+                    print ("!!! NEW LEVEL. EXIT. !!!")
+                    sleep(10)
+                    exit(-1)
+                
                 nearby_forts = PoGObot.from_iterable_to_chain(lambda c: c.get('forts', []), self.map_cells)
                 nearby_forts = [(fort, distance_in_meters(self._posf, (fort['latitude'], fort['longitude']))) for fort in nearby_forts if fort.get('type', None) == 1]
                 sorted_forts = sorted(nearby_forts, lambda x, y: cmp(x[1], y[1]))
@@ -266,11 +295,11 @@ class PoGObot:
                             self.fort_spin(find_fort_near)
                             if find_fort_near[0]['id'] == self.walk_fort_id:
                                 return
-                
-                if sum(self.pokeballs) > 0 and self._walk_count % 5:
-                    while self.catch_near_pokemon():
-                        if self.SLOW_BUT_STEALTH:
-                            sleep(2 * random.random() + 2) # If you want to make it faster, delete this line... would not recommend though
+                if self.player_exp >= self.player_next_level_xp:
+                    print ("!!! NEW LEVEL. EXIT. !!!")
+                    sleep(10)
+                    exit(-1)
+
         if find_fort_near[1] > 10:
             if self.SLOW_BUT_STEALTH:
                 sleep(4 * random.random() + 4) # If you want to make it faster, delete this line... would not recommend though
@@ -279,7 +308,8 @@ class PoGObot:
             #posf[0] = find_fort_near[0]['latitude']
             #posf[1] = find_fort_near[0]['longitude']
             self.api.set_position(find_fort_near[0]['latitude']+0.00001, find_fort_near[0]['longitude']-0.00001, posf[2])
-            self.nearby_map_objects()
+            self.fort_spin(find_fort_near)
+            #self.nearby_map_objects()
             #self._posf = self.api.get_position()
 
         return
@@ -290,32 +320,45 @@ class PoGObot:
 
         y = 0
         flag = 0
+        now = int(round(time.time()))
         for x in self.finished_forts:
-            #print ("x= ", x)
-            now = int(round(time.time()))
-            if x['fort_id'] == fort_near[0]['id'] and x['spinned_time'] >= (now - 300):
+            if x['fort_id'] == fort_near[0]['id'] and x['spinned_time'] > (now - 300):
                 flag = 1
             
             #print (x.get('spinned_time'))
             if x['spinned_time'] < (now - 300):
-                print ("delete this id from finished_forts: ", x['fort_id'])
+                #self.log.info("Finished_forts: %s", self.finished_forts)
+                self.log.debug ("Delete this id from finished_forts: %s", x['fort_id'])
                 self.finished_forts.pop(y)
+                self.log.info("Finished_forts: %s", self.finished_forts)
             y += 1
 
         if flag == 0:
             position = self._posf
-            self.log.info("fort_spin fort_id: %s, fort_latitude %s, fort_longitude %s, distance %i", fort_near[0]['id'],fort_near[0]['latitude'],fort_near[0]['longitude'],fort_near[1])
+            #self.log.info("fort_spin fort_id: %s, fort_latitude %s, fort_longitude %s, distance %i", fort_near[0]['id'],fort_near[0]['latitude'],fort_near[0]['longitude'],fort_near[1])
             request = self.api.create_request()
             request.fort_search(fort_id=fort_near[0]['id'], fort_latitude=fort_near[0]['latitude'], fort_longitude=fort_near[0]['longitude'], player_latitude=position[0], player_longitude=position[1])
             res = request.call()['responses']['FORT_SEARCH']
             #self.log.info("fort_spin (res): %s", res)
             if 'items_awarded' in res:
-                self.log.info("Fort spinned!")
-                self.finished_forts = [{'fort_id': fort_near[0]['id'],'spinned_time': int(round(time.time()))}]
+                experience_awarded = res.get('experience_awarded', {})
+                self.player_exp += experience_awarded
+                self.log.info("Fort spinned! Exp = %s [%s]",experience_awarded,self.player_exp)
+                #self.finished_forts = [{'fort_id': fort_near[0]['id'],'spinned_time': int(round(time.time()))}]
+                self.finished_forts.append({'fort_id': fort_near[0]['id'],'spinned_time': int(round(time.time()))})
+                self.log.debug("Finished_forts: %s", self.finished_forts)
+                #self.player_level = 0
+                #self.player_level_old = 0
+                #self.player_exp = 0
+                #self.player_next_level_xp = 0
+                #print ("res = ", res)
+        
             # now i fully understand java's switch/case
             elif res['result'] == 3:
                 self.log.info("Fort already spinned (cooling down)!")
-                self.log.info("Finished_forts: %s", self.finished_forts)
+                self.log.debug("Finished_forts: %s", self.finished_forts)
+                self.finished_forts.append({'fort_id': fort_near[0]['id'],'spinned_time': int(round(time.time()))})
+                self.log.debug("Finished_forts: %s", self.finished_forts)
             else:
                 self.log.info("Fort not spinned succesfully!")
             if self.SLOW_BUT_STEALTH:
@@ -684,8 +727,15 @@ class PoGObot:
                         self.pokeballs[self._pokeball_type] -= 1  # lowers the thrown ball code
                         capture_status = catch_attempt['status']
                         if capture_status == 1:
+                            player_data = catch_attempt.get('capture_award', {}).get('xp', {})
+                            exp = 0
+                            for x in player_data:
+                                exp += x
+                            self.player_exp += exp
+
                             self.log.debug("Caught Pokemon: : %s", catch_attempt)  # you did it
-                            self.log.info("Caught Pokemon:  %s", self.pokemon_names[str(pokemon['pokemon_id'])])
+                            self.log.info("Caught Pokemon:  %s. Exp: %s (%s)", self.pokemon_names[str(pokemon['pokemon_id'])],exp,self.player_exp)
+                            
                             self._pokeball_type = 1
                             if self.SLOW_BUT_STEALTH:
                                 sleep(3 * random.random() + 3)
@@ -827,8 +877,28 @@ class PoGObot:
         #print (nearby_forts)
         #for near_fort in nearby_forts:
             #self.log.info('main_loop (nearby_fort): \n\r{}'.format(json.dumps(near_fort, indent=2)))
+
+        #request = self.api.create_request()
+        #request.get_player() #not
+        #request.get_hatched_eggs()
+        #request.get_inventory()
+        #request.check_awarded_badges()
+        #request.download_settings(hash="54b359c97e46900f87211ef6e6dd0b7f2a3ea1f5") #not
+
+        #response = request.call()
+        #print ("response = ", response)
+
+            #request = self.api.create_request()
+            #request.fort_search(fort_id=fort_near[0]['id'], fort_latitude=fort_near[0]['latitude'], fort_longitude=fort_near[0]['longitude'], player_latitude=position[0], player_longitude=position[1])
+            #res = request.call()['responses']['FORT_SEARCH']
+                #self.player_exp = 0
+                #self.player_next_level_xp = 0
        
         while True:
+            if self.player_exp >= self.player_next_level_xp:
+                print ("!!! NEW LEVEL. EXIT. !!!")
+                sleep(10)
+                exit(-1)
             if heartbeat_cnt % 3 == 0:
                 try:
                     self.heartbeat()
