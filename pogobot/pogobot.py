@@ -258,10 +258,8 @@ class PoGObot:
                 final_point = append_elevation(next_point[1][0], next_point[1][1], self.GMAPS_KEY)
                 dist_m = distance_in_meters((self._posf[0], self._posf[1]), (final_point[0],final_point[1]))
                 if self.SLOW_BUT_STEALTH:
-                    if dist_m < 10:
-                        sleep(dist_m/1.5)
-                    else:
-                        sleep(dist_m/2.5)
+                    sleep(dist_m/1.11)
+
                 #self.log.info("Final_point latitude: %s, longitude: %s. Distance %i meters", final_point[0],final_point[1],dist_m)
                 self.api.set_position(*final_point)
                 # make sure we have atleast 1 ball
@@ -336,6 +334,15 @@ class PoGObot:
 
         if flag == 0:
             position = self._posf
+            
+            request = self.api.create_request()
+            request.fort_details(fort_id=fort_near[0]['id'], latitude=fort_near[0]['latitude'], longitude=fort_near[0]['longitude'])
+            res = request.call()['responses']['FORT_DETAILS']
+            
+            self.log.info("Fort DETAILS: %s",res.get('name', {}))            
+            if self.SLOW_BUT_STEALTH:
+                sleep(4 * random.random() + 5)
+            
             #self.log.info("fort_spin fort_id: %s, fort_latitude %s, fort_longitude %s, distance %i", fort_near[0]['id'],fort_near[0]['latitude'],fort_near[0]['longitude'],fort_near[1])
             request = self.api.create_request()
             request.fort_search(fort_id=fort_near[0]['id'], fort_latitude=fort_near[0]['latitude'], fort_longitude=fort_near[0]['longitude'], player_latitude=position[0], player_longitude=position[1])
@@ -448,7 +455,8 @@ class PoGObot:
                 if self._start_pos and self._walk_count % self.config.get("RETURN_START_INTERVAL") == 0:
                     fort = self.first_fort
                 
-                self.log.info("Walking to fort at %s,%s", fort[0]['latitude'], fort[0]['longitude'])
+                self.log.info("Walking to fort at %s,%s distance %i meters", fort[0]['latitude'], fort[0]['longitude'],fort[1])
+                #dist_m = distance_in_meters((self._posf[0], self._posf[1]), (fort[0]['latitude'], fort[0]['longitude']))
                 self.walk_fort_id = fort[0]['id']
                 self.walk_to((fort[0]['latitude'], fort[0]['longitude']))
                 self.log.info("Arrived at fort at %s,%s", fort[0]['latitude'], fort[0]['longitude'])
